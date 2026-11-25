@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Выбросы химических веществ</title>
+    <link rel="stylesheet" href="/styles.css">
+    <script defer src="/charts.js"></script>
+    <script defer src="/script.js"></script>
+  </head>
+  <body>
+    <header class="page-header">
+      <div class="page-width">
+        <h1>Выбросы химических веществ</h1>
+        <p>Учебная модель последствий аварии. Показатели и внешние факторы заданы на условной шкале от 0 до 1.</p>
+      </div>
+    </header>
+
+    <main class="page-width workspace">
+      <aside class="card controls">
+        <form id="scenario-form">
+          <h2>Сценарий</h2>
+          <label class="preset-label" for="preset">Готовые настройки</label>
+          <select id="preset" disabled>
+            <option value="early">Раннее оповещение</option>
+            <option value="late">Позднее оповещение</option>
+          </select>
+          <p class="hint">Сценарии различаются значением F5 — временем до оповещения.</p>
+          <details>
+            <summary>Начальные условия</summary>
+            <div id="initial-fields" class="initial-fields"></div>
+          </details>
+          <details>
+            <summary>Внешние факторы</summary>
+            <p class="hint">Между началом и концом расчёта значение меняется линейно.</p>
+            <div id="factor-fields"></div>
+          </details>
+          <details>
+            <summary>Зависимости модели</summary>
+            <p class="hint">Настройте коэффициенты. Ноль отключает соответствующее влияние.</p>
+            <div id="coefficient-fields"></div>
+          </details>
+          <button id="calculate" type="submit" disabled>Рассчитать</button>
+          <p id="status" class="status" role="status">Загружаем модель…</p>
+        </form>
+      </aside>
+
+      <section id="results" class="results" aria-label="Результаты расчёта" hidden>
+        <section class="card chart-card">
+          <div class="section-heading">
+            <h2>Динамика последствий</h2>
+            <div class="chart-filter">
+              <label for="state-filter">Показатель</label>
+              <select id="state-filter"></select>
+            </div>
+          </div>
+          <div class="metrics" id="metrics" aria-label="Показатели к концу расчёта"></div>
+          <canvas id="state-chart" class="line-chart" role="img" aria-label="Графики показателей последствий по времени"></canvas>
+          <ul class="legend" id="state-legend" aria-label="Легенда показателей"></ul>
+        </section>
+
+        <section class="card chart-card">
+          <div class="section-heading">
+            <h2>Внешние факторы</h2>
+            <div class="chart-filter">
+              <label for="factor-filter">Фактор</label>
+              <select id="factor-filter"></select>
+            </div>
+          </div>
+          <canvas id="factor-chart" class="line-chart" role="img" aria-label="Графики внешних факторов по времени"></canvas>
+          <ul class="legend" id="factor-legend" aria-label="Легенда факторов"></ul>
+        </section>
+
+        <section class="card chart-card">
+          <h2>Итоги по четвертям</h2>
+          <div class="quarter-grid" id="quarters"></div>
+          <details class="result-details">
+            <summary>Таблица значений</summary>
+            <div class="table-wrap" id="quarter-table"></div>
+          </details>
+        </section>
+      </section>
+    </main>
+  </body>
+</html>
