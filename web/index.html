@@ -4,39 +4,48 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Выбросы химических веществ</title>
+    <link rel="icon" href="data:,">
     <link rel="stylesheet" href="/styles.css">
     <script defer src="/charts.js"></script>
     <script defer src="/script.js"></script>
   </head>
   <body>
     <header class="page-header">
-      <div class="page-width">
-        <h1>Выбросы химических веществ</h1>
-        <p>Учебная модель последствий аварии. Показатели и внешние факторы заданы на условной шкале от 0 до 1.</p>
+      <div class="page-width header-content">
+        <div>
+          <h1>Выбросы химических веществ</h1>
+          <p>Учебная модель последствий аварии. Значения заданы на условной шкале от 0 до 1.</p>
+        </div>
+        <nav id="result-nav" aria-label="Графики результатов" hidden>
+          <a href="#dynamics">Показатели</a>
+          <a href="#factors">Факторы</a>
+          <a href="#snapshots">Срезы</a>
+        </nav>
       </div>
     </header>
 
     <main class="page-width workspace">
       <aside class="card controls">
         <form id="scenario-form">
-          <h2>Сценарий</h2>
-          <label class="preset-label" for="preset">Готовые настройки</label>
-          <select id="preset" disabled>
-            <option value="early">Раннее оповещение</option>
-            <option value="late">Позднее оповещение</option>
-          </select>
-          <p class="hint">Сценарии различаются значением F5 — временем до оповещения.</p>
+          <h2>Сценарий расчёта</h2>
+          <fieldset id="preset-options" class="preset-options" disabled>
+            <legend>Оповещение</legend>
+            <div class="preset-choices">
+              <label><input type="radio" name="preset" value="early" checked> Раннее</label>
+              <label><input type="radio" name="preset" value="late"> Позднее</label>
+            </div>
+          </fieldset>
           <details>
-            <summary>Начальные условия</summary>
+            <summary>Начальные условия <span>X(0)</span></summary>
             <div id="initial-fields" class="initial-fields"></div>
           </details>
           <details>
-            <summary>Внешние факторы</summary>
+            <summary>Внешние факторы <span>F(t)</span></summary>
             <p class="hint">Между началом и концом расчёта значение меняется линейно.</p>
             <div id="factor-fields"></div>
           </details>
           <details>
-            <summary>Зависимости модели</summary>
+            <summary>Зависимости модели <span>Коэффициенты</span></summary>
             <p class="hint">Настройте коэффициенты. Ноль отключает соответствующее влияние.</p>
             <div id="coefficient-fields"></div>
           </details>
@@ -46,20 +55,28 @@
       </aside>
 
       <section id="results" class="results" aria-label="Результаты расчёта" hidden>
-        <section class="card chart-card">
+        <p id="line-keys" class="sr-only">Стрелки влево и вправо меняют время, стрелки вверх и вниз меняют ряд. Escape закрывает подсказку.</p>
+        <p id="radar-keys" class="sr-only">Стрелки выбирают показатель. Escape закрывает подсказку.</p>
+        <section class="card chart-card" id="dynamics">
           <div class="section-heading">
-            <h2>Динамика последствий</h2>
+            <div>
+              <h2>Динамика последствий</h2>
+              <p class="section-note">Сводка на момент t = 1</p>
+            </div>
             <div class="chart-filter">
               <label for="state-filter">Показатель</label>
               <select id="state-filter"></select>
             </div>
           </div>
           <div class="metrics" id="metrics" aria-label="Показатели к концу расчёта"></div>
-          <canvas id="state-chart" class="line-chart" role="img" aria-label="Графики показателей последствий по времени"></canvas>
+          <div class="plot">
+            <canvas id="state-chart" class="line-chart" role="img" tabindex="0" aria-label="График показателей последствий" aria-describedby="line-keys"></canvas>
+          </div>
+          <p class="chart-hint">Наведите курсор или коснитесь графика, чтобы увидеть значения в выбранный момент.</p>
           <ul class="legend" id="state-legend" aria-label="Легенда показателей"></ul>
         </section>
 
-        <section class="card chart-card">
+        <section class="card chart-card" id="factors">
           <div class="section-heading">
             <h2>Внешние факторы</h2>
             <div class="chart-filter">
@@ -67,12 +84,14 @@
               <select id="factor-filter"></select>
             </div>
           </div>
-          <canvas id="factor-chart" class="line-chart" role="img" aria-label="Графики внешних факторов по времени"></canvas>
+          <div class="plot">
+            <canvas id="factor-chart" class="line-chart" role="img" tabindex="0" aria-label="График внешних факторов" aria-describedby="line-keys"></canvas>
+          </div>
           <ul class="legend" id="factor-legend" aria-label="Легенда факторов"></ul>
         </section>
 
-        <section class="card chart-card">
-          <h2>Итоги по четвертям</h2>
+        <section class="card chart-card" id="snapshots">
+          <h2>Срезы по четвертям</h2>
           <div class="quarter-grid" id="quarters"></div>
           <details class="result-details">
             <summary>Таблица значений</summary>

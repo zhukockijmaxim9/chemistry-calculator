@@ -1,17 +1,23 @@
 const form = document.querySelector("#scenario-form");
-const preset = document.querySelector("#preset");
+const presetOptions = document.querySelector("#preset-options");
 const calculateButton = document.querySelector("#calculate");
 const statusMessage = document.querySelector("#status");
 const results = document.querySelector("#results");
 const stateFilter = document.querySelector("#state-filter");
 const factorFilter = document.querySelector("#factor-filter");
 const decimal = new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 2 });
+const preciseDecimal = new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 4 });
 let model;
 let result;
 let inputsChanged = false;
+let requestVersion = 0;
 
 function formatNumber(value) {
   return decimal.format(value);
+}
+
+function formatValue(value) {
+  return preciseDecimal.format(value);
 }
 
 function element(tag, text, className) {
@@ -72,7 +78,7 @@ function setOptions(select, titles, prefix, allLabel) {
 }
 
 function applyPreset() {
-  const { initial, factors } = model.presets[preset.value];
+  const { initial, factors } = model.presets[form.elements.preset.value];
   initial.forEach((value, index) => {
     form.elements[`state-${index}`].value = value;
   });
@@ -103,16 +109,17 @@ function setStatus(message, error = false) {
 }
 
 function renderLineChart(values, titles, prefix, filter, chartId, legendId) {
+  const labels = titles.map((title, index) => `${prefix}${index + 1} · ${title}`);
   const indices = filter.value === "all"
     ? titles.map((_, index) => index)
     : [Number(filter.value)];
-  drawLineChart(document.querySelector(chartId), result.times, values, indices);
+  drawLineChart(document.querySelector(chartId), result.times, values, indices, labels);
   const legend = document.querySelector(legendId);
   legend.replaceChildren(...indices.map((index) => {
     const item = element("li");
     const swatch = element("span", undefined, "swatch");
     swatch.style.backgroundColor = chartColors[index];
-    item.append(swatch, `${prefix}${index + 1} · ${titles[index]}`);
+    item.append(swatch, labels[index]);
     return item;
   }));
 }
@@ -122,25 +129,30 @@ function renderCharts() {
   renderLineChart(result.states, model.states, "X", stateFilter, "#state-chart", "#state-legend");
   renderLineChart(result.factors, model.factors, "F", factorFilter, "#factor-chart", "#factor-legend");
   document.querySelectorAll("#quarters canvas").forEach((canvas, index) => {
-    drawRadarChart(canvas, result.quarters[index].values);
+    const { time, values } = result.quarters[index];
+    drawRadarChart(canvas, values, time, model.states);
   });
 }
 
 function renderResults() {
   const last = result.quarters.at(-1).values;
-  document.querySelector("#metrics").replaceChildren(...[2, 5, 10].map((index) => {
+  document.querySelector("#metrics").replaceChildren(...[2, 5, 6].map((index) => {
     const metric = element("div", undefined, "metric");
-    metric.append(element("strong", formatNumber(last[index])), element("span", model.states[index]));
+    metric.append(element("strong", formatValue(last[index])), element("span", model.states[index]));
     return metric;
   }));
 
   document.querySelector("#quarters").replaceChildren(...result.quarters.map(({ time }, index) => {
     const name = `${index + 1}-я четверть · t = ${formatNumber(time)}`;
     const figure = element("figure", undefined, "quarter");
+    const plot = element("div", undefined, "plot");
     const canvas = element("canvas");
     canvas.setAttribute("role", "img");
+    canvas.tabIndex = 0;
     canvas.setAttribute("aria-label", `Лепестковая диаграмма. ${name}`);
-    figure.append(element("figcaption", name), canvas);
+    canvas.setAttribute("aria-describedby", "radar-keys");
+    plot.append(canvas);
+    figure.append(element("figcaption", name), plot);
     return figure;
   }));
 
@@ -158,21 +170,22 @@ function renderResults() {
     label.scope = "row";
     row.append(label);
     result.quarters.forEach(({ values }) => {
-      row.insertCell().textContent = formatNumber(values[index]);
+      row.insertCell().textContent = formatValue(values[index]);
     });
   });
   document.querySelector("#quarter-table").replaceChildren(table);
 
   results.hidden = false;
+  document.querySelector("#result-nav").hidden = false;
   renderCharts();
 }
 
 async function calculate(event) {
   event?.preventDefault();
-  if (calculateButton.disabled || !form.reportValidity()) return;
+  if (!model || !form.reportValidity()) return;
 
+  const version = ++requestVersion;
   calculateButton.disabled = true;
-  preset.disabled = true;
   inputsChanged = false;
   setStatus("Считаем…");
   try {
@@ -182,15 +195,19 @@ async function calculate(event) {
       body: JSON.stringify(scenarioData()),
     });
     const data = await response.json();
+    if (version !== requestVersion) return;
     if (!response.ok) throw new Error(data.error || "Сервер отклонил расчёт.");
     result = data;
     renderResults();
     setStatus(inputsChanged ? "Параметры изменились. Рассчитайте заново." : "Расчёт готов.");
   } catch (error) {
-    setStatus(`Ошибка расчёта. ${error.message}`, true);
+    if (version !== requestVersion) return;
+    const message = error instanceof TypeError
+      ? "Проверьте, запущен ли Python-сервер, и повторите расчёт."
+      : error.message;
+    setStatus(`Ошибка расчёта. ${message}`, true);
   } finally {
-    calculateButton.disabled = false;
-    preset.disabled = false;
+    if (version === requestVersion) calculateButton.disabled = false;
   }
 }
 
@@ -203,7 +220,7 @@ async function start() {
     setOptions(stateFilter, model.states, "X", "Все показатели");
     setOptions(factorFilter, model.factors, "F", "Все факторы");
     applyPreset();
-    calculateButton.disabled = false;
+    presetOptions.disabled = false;
     await calculate();
   } catch {
     setStatus("Не удалось загрузить модель. Проверьте запуск сервера и обновите страницу.", true);
@@ -217,7 +234,7 @@ form.addEventListener("input", (event) => {
     if (!calculateButton.disabled) setStatus("Параметры изменились. Рассчитайте заново.");
   }
 });
-preset.addEventListener("change", () => {
+presetOptions.addEventListener("change", () => {
   applyPreset();
   calculate();
 });
